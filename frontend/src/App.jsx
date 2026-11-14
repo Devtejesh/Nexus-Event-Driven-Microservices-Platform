@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { loginUser, registerUser } from "./api";
 import { messages } from "./messages";
 import { products } from "./products";
+import VoiceAssistant from "./VoiceAssistant";
 import "./App.css";
 
 const languages = [
@@ -184,6 +185,43 @@ function App() {
     notify(text("loggedOut"));
   }
 
+  function handleAssistantAction(action) {
+    if (!action || action.type === "none") return true;
+    if (action.type === "navigate" && ["home", "shop", "cart", "auth"].includes(action.screen)) {
+      setScreen(action.screen);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return true;
+    }
+    if (action.type === "search_products" && typeof action.query === "string" && action.query.trim().length <= 80) {
+      setSearch(action.query.trim());
+      setCategory("all");
+      setScreen("shop");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return true;
+    }
+    if (action.type === "add_to_cart") {
+      const product = products.find((entry) => entry.id === action.product_id);
+      const weight = Number(action.weight_grams);
+      const quantity = Number(action.quantity);
+      const existing = cart.find((item) => item.productId === action.product_id && item.weightGrams === weight);
+      if (
+        product &&
+        Number.isInteger(weight) &&
+        weight >= 100 &&
+        weight <= 10000 &&
+        Number.isInteger(quantity) &&
+        quantity >= 1 &&
+        quantity <= 20 &&
+        (!existing || existing.quantity + quantity <= 20)
+      ) {
+        addToCart(product.id, weight, quantity);
+        setScreen("cart");
+        return true;
+      }
+    }
+    return false;
+  }
+
   function submitDemoOrder(event) {
     event.preventDefault();
     if (!cart.length) return;
@@ -269,7 +307,17 @@ function App() {
     <header className="site-header"><div className="content-width header-inner"><button className="brand-mark" onClick={() => setScreen("home")} aria-label={text("goHome")}><span className="brand-symbol"><Icon name="leaf" size={21} /></span><span className="brand-name">Chicken<span>Fresh</span><small>{text("brandTagline")}</small></span></button><nav className="main-nav" aria-label={text("mainNavigation")}><button className={screen === "home" ? "active" : ""} onClick={() => setScreen("home")}>{text("home")}</button><button className={screen === "shop" || screen === "details" ? "active" : ""} onClick={() => setScreen("shop")}>{text("shop")}</button><button className={screen === "admin" ? "active" : ""} onClick={() => setScreen("admin")}>{text("merchant")}</button></nav><div className="header-actions"><button className="icon-button account-button" onClick={() => setScreen("auth")} aria-label={loggedIn ? text("account") : text("signIn")} title={loggedIn ? text("account") : text("signIn")}><Icon name="user" /><span>{loggedIn ? text("account") : text("signIn")}</span></button>{loggedIn && <button className="icon-button logout-button" onClick={logout} aria-label={text("logout")} title={text("logout")}><Icon name="logout" /></button>}<button className="cart-button" onClick={() => setScreen("cart")}><Icon name="bag" size={17} /><span>{text("cart")}</span><b>{cartCount}</b></button></div></div></header>
     <div className="screen-content" key={screen}>{screen === "home" ? renderHome() : screen === "shop" ? renderShop() : screen === "details" ? renderDetails() : screen === "cart" ? renderCart() : screen === "admin" ? renderAdmin() : screen === "auth" ? renderAuth() : renderConfirmation()}</div>
     <footer className="site-footer"><div className="content-width footer-main"><div className="footer-brand"><span className="brand-symbol"><Icon name="leaf" size={20} /></span><div><strong>ChickenFresh</strong><p>{text("brandTagline")}</p></div></div><p className="footer-note">{text("demoFooter")}</p><div className="footer-links"><button onClick={() => setScreen("shop")}>{text("shop")}</button><button onClick={() => setScreen("auth")}>{text("account")}</button><button onClick={() => setScreen("admin")}>{text("merchant")}</button></div></div><div className="content-width footer-bottom"><span>© {new Date().getFullYear()} ChickenFresh</span><span>{text("demoData")}</span></div></footer>
-    {toast && <div className="toast" role="status" aria-live="polite"><Icon name="check" size={16} />{toast}</div>}</div>;
+    {toast && <div className="toast" role="status" aria-live="polite"><Icon name="check" size={16} />{toast}</div>}
+    <VoiceAssistant
+      language={language}
+      onLanguageChange={setLanguage}
+      screen={screen}
+      products={products}
+      getProductName={(product) => text(product.nameKey)}
+      cart={cart}
+      onAction={handleAssistantAction}
+    />
+  </div>;
 }
 
 export default App;

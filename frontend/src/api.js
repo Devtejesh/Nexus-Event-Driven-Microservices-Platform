@@ -1,6 +1,7 @@
 
 const USER_API = "/api/user";
 const ORDER_API = "http://localhost:8081";
+const ASSISTANT_API = "/api/assistant/chat";
 
 async function request(url, options = {}) {
   const response = await fetch(url, {
@@ -83,5 +84,19 @@ export function deleteOrder(id, token) {
     headers: {
       Authorization: `Bearer ${token}`,
     },
+  });
+}
+
+export function chatWithAssistant(payload) {
+  return request(ASSISTANT_API, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function transcribeAssistantAudio(payload) {
+  return request("/api/assistant/transcribe", {
+    method: "POST",
+    body: JSON.stringify(payload),
   });
 }
